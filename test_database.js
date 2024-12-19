@@ -24,11 +24,11 @@ describe('Database Test', function () {
   beforeEach(async function () {
     // Disable triggers temporarily for cleanup
     await client.query('ALTER TABLE users DISABLE TRIGGER user_audit_trigger');
-    
+
     // Clean up any test data
     await client.query('DELETE FROM user_audit_logs');
     await client.query('DELETE FROM users');
-    
+
     // Re-enable triggers
     await client.query('ALTER TABLE users ENABLE TRIGGER user_audit_trigger');
   });
@@ -39,6 +39,7 @@ describe('Database Test', function () {
         INSERT INTO users (
           email,
           username,
+          password_hash,
           first_name,
           last_name,
           date_of_birth,
@@ -46,18 +47,19 @@ describe('Database Test', function () {
         ) VALUES (
           'test.user@example.com',
           'testuser123',
+          '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.i77i',
           'Test',
           'User',
           '1990-01-15',
           '+1-555-000-0000'
         )`);
-      
+
       // Query to verify the user was created
       const result = await client.query(`
         SELECT * FROM users 
         WHERE email = 'test.user@example.com'
       `);
-      
+
       expect(result.rows.length).to.equal(1);
       expect(result.rows[0].username).to.equal('testuser123');
     } catch (error) {
@@ -115,7 +117,7 @@ describe('Database Test', function () {
   it('should reject users younger than 13 years old', async function () {
     const tooYoungDate = new Date();
     tooYoungDate.setFullYear(tooYoungDate.getFullYear() - 12);
-    
+
     try {
       await client.query(`
         INSERT INTO users (
